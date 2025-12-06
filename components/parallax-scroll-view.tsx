@@ -1,15 +1,9 @@
 import type { PropsWithChildren, ReactElement } from 'react';
-import { StyleSheet } from 'react-native';
-import Animated, {
-  interpolate,
-  useAnimatedRef,
-  useAnimatedStyle,
-  useScrollOffset,
-} from 'react-native-reanimated';
+import { StyleSheet, useColorScheme, Animated, ScrollView } from 'react-native';
+import { useRef } from 'react';
 
 import { ThemedView } from '@/components/themed-view';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useThemeColor } from '@/hooks/use-theme-color';
+import { Colors } from '@/constants/theme';
 
 const HEADER_HEIGHT = 250;
 
@@ -23,42 +17,45 @@ export default function ParallaxScrollView({
   headerImage,
   headerBackgroundColor,
 }: Props) {
-  const backgroundColor = useThemeColor({}, 'background');
-  const colorScheme = useColorScheme() ?? 'light';
-  const scrollRef = useAnimatedRef<Animated.ScrollView>();
-  const scrollOffset = useScrollOffset(scrollRef);
-  const headerAnimatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [
-        {
-          translateY: interpolate(
-            scrollOffset.value,
-            [-HEADER_HEIGHT, 0, HEADER_HEIGHT],
-            [-HEADER_HEIGHT / 2, 0, HEADER_HEIGHT * 0.75]
-          ),
-        },
-        {
-          scale: interpolate(scrollOffset.value, [-HEADER_HEIGHT, 0, HEADER_HEIGHT], [2, 1, 1]),
-        },
-      ],
-    };
+  const theme = useColorScheme() ?? 'light';
+  const colorScheme: 'light' | 'dark' = theme === 'dark' ? 'dark' : 'light';
+  const backgroundColor = Colors[colorScheme].background;
+  const scrollY = useRef(new Animated.Value(0)).current;
+
+  const headerTranslateY = scrollY.interpolate({
+    inputRange: [-HEADER_HEIGHT, 0, HEADER_HEIGHT],
+    outputRange: [-HEADER_HEIGHT / 2, 0, HEADER_HEIGHT * 0.75],
+    extrapolate: 'clamp',
+  });
+
+  const headerScale = scrollY.interpolate({
+    inputRange: [-HEADER_HEIGHT, 0, HEADER_HEIGHT],
+    outputRange: [2, 1, 1],
+    extrapolate: 'clamp',
   });
 
   return (
-    <Animated.ScrollView
-      ref={scrollRef}
+    <ScrollView
       style={{ backgroundColor, flex: 1 }}
-      scrollEventThrottle={16}>
+      scrollEventThrottle={16}
+      onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+        useNativeDriver: true,
+      })}>
       <Animated.View
         style={[
           styles.header,
           { backgroundColor: headerBackgroundColor[colorScheme] },
-          headerAnimatedStyle,
+          {
+            transform: [
+              { translateY: headerTranslateY },
+              { scale: headerScale },
+            ],
+          },
         ]}>
         {headerImage}
       </Animated.View>
       <ThemedView style={styles.content}>{children}</ThemedView>
-    </Animated.ScrollView>
+    </ScrollView>
   );
 }
 
