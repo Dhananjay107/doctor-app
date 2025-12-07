@@ -1,11 +1,11 @@
 export const MedicalTheme = {
   colors: {
-    // Enhanced Blue Palette
-    primary: "#0066FF",
-    primaryDark: "#0052CC",
-    primaryLight: "#00BFFF",
-    primaryLighter: "#4DA6FF",
-    primaryGradient: ["#0066FF", "#00BFFF", "#4DA6FF"],
+    // Enhanced Blue Palette - Matching Admin Panel (blue-900)
+    primary: "#1e3a8a", // blue-900 - Matching Admin Panel
+    primaryDark: "#1e40af", // blue-800
+    primaryLight: "#3b82f6", // blue-500
+    primaryLighter: "#60a5fa", // blue-400
+    primaryGradient: ["#1e3a8a", "#3b82f6", "#60a5fa"],
     
     // Enhanced Green Palette
     secondary: "#00C853",
@@ -45,20 +45,20 @@ export const MedicalTheme = {
     error: "#F44336",
     errorLight: "#EF5350",
     errorBg: "#FFEBEE",
-    info: "#0066FF",
-    infoLight: "#00BFFF",
+    info: "#1e3a8a", // blue-900
+    infoLight: "#3b82f6", // blue-500
     infoBg: "#E3F2FD",
     
     // Medical Specific
-    medicalBlue: "#0066FF",
-    medicalBlueLight: "#00BFFF",
+    medicalBlue: "#1e3a8a", // blue-900
+    medicalBlueLight: "#3b82f6", // blue-500
     medicalGreen: "#00C853",
     medicalGreenLight: "#00E676",
     medicalTeal: "#00BCD4",
     medicalTealLight: "#4DD0E1",
     
     // Accent Colors
-    accentBlue: "#2196F3",
+    accentBlue: "#1e3a8a", // blue-900
     accentGreen: "#4CAF50",
     accentPurple: "#9C27B0",
     accentOrange: "#FF9800",
