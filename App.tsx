@@ -14,7 +14,8 @@ import { initializeSocket, disconnectSocket } from "./src/services/socket";
 import { MedicalTheme } from "./src/constants/theme";
 import AuthScreen from "./src/screens/AuthScreen";
 import DoctorTabs from "./src/screens/DoctorTabs";
-import PrescriptionFlowScreen from "./src/screens/PrescriptionFlowScreen";
+import ConsultationScreen from "./src/screens/ConsultationScreen";
+import EPrescriptionsScreen from "./src/screens/EPrescriptionsScreen";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -100,9 +101,18 @@ function AppNavigator() {
         <Stack.Screen name="Auth" component={AuthScreen} />
         <Stack.Screen name="Doctor" component={DoctorTabs} />
         <Stack.Screen 
-          name="PrescriptionFlow" 
-          component={PrescriptionFlowScreen}
+          name="Consultation" 
+          component={ConsultationScreen}
           options={{ headerShown: false }}
+        />
+        <Stack.Screen 
+          name="E-Prescriptions" 
+          component={EPrescriptionsScreen}
+          options={{ 
+            headerShown: false,
+            presentation: "card",
+            animation: "slide_from_right"
+          }}
         />
       </Stack.Navigator>
       <Toast />

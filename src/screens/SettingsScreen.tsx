@@ -600,6 +600,27 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+        {/* Availability Section - Quick Link */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Appointments</Text>
+          <View style={styles.card}>
+            <TouchableOpacity
+              style={styles.settingRow}
+              onPress={() => {
+                const nav = navigation as any;
+                const tabNavigator = nav.getParent();
+                if (tabNavigator) {
+                  tabNavigator.navigate("Availability");
+                }
+              }}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.settingTitle}>📅 Manage Availability</Text>
+              <Text style={styles.chevron}>›</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {/* Logout Section */}
         <View style={styles.section}>
           <View style={styles.card}>

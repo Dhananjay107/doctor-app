@@ -8,6 +8,7 @@ const SCREEN_TITLES: Record<string, string> = {
   Appointments: "Appointments",
   Patients: "Patients",
   "E-Prescriptions": "Prescriptions",
+  Availability: "Availability",
   Settings: "Settings",
 };
 

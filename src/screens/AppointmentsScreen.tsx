@@ -128,8 +128,8 @@ export default function AppointmentsScreen() {
   const handleProceedToTreatment = () => {
     if (!selectedAppointment) return;
     setAppointmentDetailsModal(false);
-    // Navigate to prescription flow
-    (navigation as any).navigate("PrescriptionFlow", {
+    // Navigate to E-Prescriptions with appointment data
+    (navigation as any).navigate("E-Prescriptions", {
       appointmentId: selectedAppointment._id,
       patientId: selectedAppointment.patientId,
       patientName: selectedAppointment.patientName || `Patient ${selectedAppointment.patientId.slice(-8)}`,
@@ -241,12 +241,41 @@ export default function AppointmentsScreen() {
       if (data.doctorId === user.id || !data.doctorId) {
         console.log("✅ Refreshing appointments list...");
         fetchAppointments(user.id, token, false);
+        
+        // Format slot time for notification
+        let slotInfo = "";
+        if (data.slotStartTime && data.slotEndTime) {
+          const startTime = new Date(data.slotStartTime).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+          const endTime = new Date(data.slotEndTime).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+          slotInfo = ` (Slot: ${startTime} - ${endTime})`;
+        }
+        
         Toast.show({
           type: "success",
-          text1: "🎉 New Appointment!",
-          text2: data.patientName ? `${data.patientName} booked an appointment` : "A new appointment has been booked",
+          text1: "🎉 New Appointment Booked!",
+          text2: data.patientName 
+            ? `${data.patientName} booked an appointment${slotInfo}` 
+            : `A new appointment has been booked${slotInfo}`,
+          visibilityTime: 5000,
+        });
+      }
+    };
+
+    const handleSlotBooked = (data: any) => {
+      console.log("⏰ Slot booked notification received:", data);
+      if (data.doctorId === user.id || !data.doctorId) {
+        const startTime = new Date(data.startTime).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+        const endTime = new Date(data.endTime).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+        
+        Toast.show({
+          type: "info",
+          text1: "⏰ Slot Booked",
+          text2: `${data.patientName || "Patient"} booked slot ${startTime} - ${endTime}`,
           visibilityTime: 4000,
         });
+        
+        // Refresh appointments to show updated slot status
+        fetchAppointments(user.id, token, false);
       }
     };
 
@@ -280,10 +309,12 @@ export default function AppointmentsScreen() {
 
     onSocketEvent("appointment:created", handleAppointmentCreated);
     onSocketEvent("appointment:statusUpdated", handleAppointmentStatusUpdated);
+    onSocketEvent("slot:booked", handleSlotBooked);
 
     return () => {
       offSocketEvent("appointment:created", handleAppointmentCreated);
       offSocketEvent("appointment:statusUpdated", handleAppointmentStatusUpdated);
+      offSocketEvent("slot:booked", handleSlotBooked);
     };
   }, [user?.id, token]);
 
@@ -520,6 +551,7 @@ export default function AppointmentsScreen() {
         body: JSON.stringify({ 
           scheduledAt: scheduledAt.toISOString(),
           reason: rescheduleReason.trim(),
+          rescheduleReason: rescheduleReason.trim(),
         }),
       });
       
@@ -1028,6 +1060,21 @@ export default function AppointmentsScreen() {
                       {apt.patientName || `Patient ${apt.patientId.slice(-8)}`}
                     </Text>
                     <Text style={styles.appointmentDateTime}>{dateTimeStr}</Text>
+                    {apt.slotId && (
+                      <Text style={styles.slotInfo}>
+                        ✓ Slot Assigned
+                      </Text>
+                    )}
+                    {apt.rescheduleReason && (
+                      <Text style={styles.rescheduleReason}>
+                        Rescheduled: {apt.rescheduleReason}
+                      </Text>
+                    )}
+                    {apt.cancellationReason && apt.status === "CANCELLED" && (
+                      <Text style={styles.cancellationReason}>
+                        Cancelled: {apt.cancellationReason}
+                      </Text>
+                    )}
                   </View>
                 </View>
 
@@ -2090,6 +2137,24 @@ const styles = StyleSheet.create({
     color: MedicalTheme.colors.dark.textSecondary,
     fontSize: 13,
     fontWeight: "400",
+  },
+  slotInfo: {
+    fontSize: 12,
+    color: MedicalTheme.colors.primary,
+    marginTop: 4,
+    fontWeight: "600",
+  },
+  rescheduleReason: {
+    fontSize: 11,
+    color: "#f59e0b",
+    marginTop: 4,
+    fontStyle: "italic",
+  },
+  cancellationReason: {
+    fontSize: 11,
+    color: "#ef4444",
+    marginTop: 4,
+    fontStyle: "italic",
   },
   acceptButton: {
     paddingVertical: 10,

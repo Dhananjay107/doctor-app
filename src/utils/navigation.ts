@@ -3,13 +3,21 @@ import { NavigationContainerRef, CommonActions } from "@react-navigation/native"
 export type RootStackParamList = {
   Auth: undefined;
   Doctor: undefined;
-  PrescriptionFlow: {
+  Consultation: {
     appointmentId: string;
     patientId: string;
     patientName: string;
-    age: number;
-    issue: string;
+    consultationType: "ONLINE" | "OFFLINE";
+    baseFee?: number;
   };
+  "E-Prescriptions": {
+    appointmentId?: string;
+    patientId?: string;
+    patientName?: string;
+    age?: number;
+    issue?: string;
+  } | undefined;
+  Availability: undefined;
 };
 
 export let navigationRef: NavigationContainerRef<RootStackParamList> | null = null;

@@ -82,6 +82,7 @@ interface LoginResponse {
 interface LoginCredentials {
   email: string;
   password: string;
+  mfaToken?: string;
 }
 
 interface ErrorResponse {

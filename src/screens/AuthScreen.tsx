@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useAppDispatch } from "../store/hooks";
-import { login } from "../store/authSlice";
+import { login, setAuth } from "../store/authSlice";
 import { RootStackParamList } from "../utils/navigation";
 import { MedicalTheme } from "../constants/theme";
 import { LinearGradient } from "expo-linear-gradient";
@@ -27,6 +27,9 @@ export default function AuthScreen({ navigation }: Props) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showMFA, setShowMFA] = useState(false);
+  const [mfaCode, setMfaCode] = useState("");
+  const [mfaToken, setMfaToken] = useState<string | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -65,6 +68,34 @@ export default function AuthScreen({ navigation }: Props) {
       setError(null);
       setLoading(true);
 
+      const API_BASE = process.env.EXPO_PUBLIC_API_BASE || 'http://localhost:4000';
+      const res = await fetch(`${API_BASE}/api/users/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || data.error || 'Login failed');
+      }
+
+      // Check if MFA is required
+      if (data.requiresMFA && data.mfaToken) {
+        setMfaToken(data.mfaToken);
+        setShowMFA(true);
+        setLoading(false);
+        Toast.show({
+          type: "info",
+          text1: "MFA Required",
+          text2: "Please enter the 6-digit code sent to your email",
+          visibilityTime: 3000,
+        });
+        return;
+      }
+
+      // If no MFA, proceed with normal login
       await dispatch(login({ email, password })).unwrap();
 
       Toast.show({
@@ -89,6 +120,61 @@ export default function AuthScreen({ navigation }: Props) {
       });
     }
   }, [email, password, dispatch, navigation]);
+
+  const handleMFAVerify = useCallback(async () => {
+    if (!mfaCode.trim() || mfaCode.length !== 6) {
+      setError("Please enter a valid 6-digit code");
+      return;
+    }
+
+    try {
+      setError(null);
+      setLoading(true);
+
+      const API_BASE = process.env.EXPO_PUBLIC_API_BASE || 'http://localhost:4000';
+      const res = await fetch(`${API_BASE}/api/users/verify-mfa`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mfaToken, mfaCode: mfaCode.trim() }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || data.error || 'MFA verification failed');
+      }
+
+      // MFA verified, save auth and set state
+      if (data.token && data.user) {
+        const { saveAuth } = await import('../utils/storage');
+        await saveAuth(data.token, data.user);
+        dispatch(setAuth({ token: data.token, user: data.user }));
+      } else {
+        throw new Error('Invalid response from server');
+      }
+
+      Toast.show({
+        type: "success",
+        text1: "Login Successful!",
+        text2: "Welcome to MediConnect",
+        visibilityTime: 2000,
+      });
+
+      timeoutRef.current = setTimeout(() => {
+        navigation.replace("Doctor");
+      }, 500);
+    } catch (e: any) {
+      const errorMessage = e?.message || "MFA verification failed. Please check your code";
+      setError(errorMessage);
+      setLoading(false);
+      Toast.show({
+        type: "error",
+        text1: "Verification Failed",
+        text2: errorMessage,
+        visibilityTime: 3000,
+      });
+    }
+  }, [mfaCode, mfaToken, email, password, dispatch, navigation]);
 
   return (
     <LinearGradient
@@ -159,9 +245,41 @@ export default function AuthScreen({ navigation }: Props) {
               value={password}
               onChangeText={setPassword}
               autoCorrect={false}
-              editable={!loading}
+              editable={!loading && !showMFA}
             />
           </View>
+
+          {showMFA && (
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>MFA Code (6 digits)</Text>
+              <TextInput
+                placeholder="Enter 6-digit code"
+                placeholderTextColor={MedicalTheme.colors.textTertiary}
+                style={styles.input}
+                value={mfaCode}
+                onChangeText={(text) => {
+                  // Only allow numbers and limit to 6 digits
+                  const numericText = text.replace(/[^0-9]/g, '').slice(0, 6);
+                  setMfaCode(numericText);
+                }}
+                keyboardType="number-pad"
+                maxLength={6}
+                autoCorrect={false}
+                editable={!loading}
+              />
+              <TouchableOpacity
+                style={styles.resendButton}
+                onPress={() => {
+                  setShowMFA(false);
+                  setMfaCode("");
+                  setMfaToken(null);
+                  handleLogin();
+                }}
+              >
+                <Text style={styles.resendText}>Resend Code</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {error && (
             <Animated.View style={styles.errorContainer}>
@@ -171,7 +289,7 @@ export default function AuthScreen({ navigation }: Props) {
 
           <TouchableOpacity
             style={[styles.submitButton, loading && styles.submitButtonDisabled]}
-            onPress={handleLogin}
+            onPress={showMFA ? handleMFAVerify : handleLogin}
             disabled={loading}
             activeOpacity={0.8}
           >
@@ -184,7 +302,7 @@ export default function AuthScreen({ navigation }: Props) {
               {loading ? (
                 <ActivityIndicator color={MedicalTheme.colors.textInverse} />
               ) : (
-                <Text style={styles.submitText}>Sign In →</Text>
+                <Text style={styles.submitText}>{showMFA ? "Verify Code →" : "Sign In →"}</Text>
               )}
             </LinearGradient>
           </TouchableOpacity>
@@ -346,5 +464,16 @@ const styles = StyleSheet.create({
     fontSize: MedicalTheme.typography.fontSize.sm,
     textAlign: "center",
     fontWeight: MedicalTheme.typography.fontWeight.medium,
+  },
+  resendButton: {
+    marginTop: MedicalTheme.spacing.xs,
+    alignSelf: 'flex-end',
+  },
+  resendText: {
+    color: "#FFFFFF",
+    fontSize: MedicalTheme.typography.fontSize.xs,
+    fontWeight: MedicalTheme.typography.fontWeight.medium,
+    opacity: 0.9,
+    textDecorationLine: 'underline',
   },
 });

@@ -4,6 +4,7 @@ import { View, Text, StyleSheet } from "react-native";
 import AppointmentsScreen from "./AppointmentsScreen";
 import PatientHistoryScreen from "./PatientHistoryScreen";
 import SettingsScreen from "./SettingsScreen";
+import AvailabilityScreen from "./AvailabilityScreen";
 import DoctorNavbar from "../components/DoctorNavbar";
 import CustomTabBar from "../components/CustomTabBar";
 import TabIcon from "../components/TabIcon";
@@ -84,6 +85,14 @@ export default function DoctorTabs() {
           options={{
             tabBarLabel: "History",
             tabBarIcon: ({ color }) => <PatientsIcon width={24} height={24} color={color} />,
+          }}
+        />
+        <Tab.Screen
+          name="Availability"
+          component={AvailabilityScreen}
+          options={{
+            tabBarLabel: "Availability",
+            tabBarIcon: ({ color }) => <Text style={{ fontSize: 24 }}>📅</Text>,
           }}
         />
         <Tab.Screen
